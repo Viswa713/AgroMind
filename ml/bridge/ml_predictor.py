@@ -1,29 +1,21 @@
-import tensorflow as tf
-import numpy as np
-from tensorflow.keras.preprocessing import image
 import os
 import sys
 import json
+import numpy as np
+from tensorflow.keras.preprocessing import image
 
 # =========================
-# PATH SETUP
+# PATH SETUP (Render-safe)
 # =========================
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = os.path.abspath(
-    os.path.join(
-        BASE_DIR,
-        "..",
-        "models",
-        "tomato_model.keras"
-    )
+    os.path.join(BASE_DIR, "..", "models", "tomato_model.keras")
 )
 
 IMG_SIZE = (224, 224)
 
-# IMPORTANT:
-# MUST MATCH TRAINING ORDER EXACTLY
+# Must match training labels EXACTLY
 class_names = [
     "early_blight",
     "healthy",
@@ -33,89 +25,70 @@ class_names = [
 ]
 
 # =========================
-# MODEL LOADING
+# GLOBAL MODEL (lazy load)
 # =========================
-
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(
-        f"Model not found: {MODEL_PATH}"
-    )
-
 model = None
+
 
 def load_model_once():
     global model
 
     if model is None:
+        import tensorflow as tf
+
+        if not os.path.exists(MODEL_PATH):
+            raise RuntimeError(f"Model not found: {MODEL_PATH}")
+
         model = tf.keras.models.load_model(MODEL_PATH)
 
     return model
 
-# =========================
-# PREDICTION
-# =========================
 
+# =========================
+# PREDICTION FUNCTION
+# =========================
 def predict_image(img_path):
     model = load_model_once()
 
-    img = image.load_img(
-        img_path,
-        target_size=IMG_SIZE
-    )
+    if not os.path.exists(img_path):
+        raise RuntimeError(f"Image not found: {img_path}")
+
+    try:
+        img = image.load_img(img_path, target_size=IMG_SIZE)
+    except Exception as e:
+        raise RuntimeError(f"Image load failed: {str(e)}")
 
     img_array = image.img_to_array(img)
-
-    img_array = np.expand_dims(
-        img_array,
-        axis=0
-    )
-
+    img_array = np.expand_dims(img_array, axis=0)
     img_array = img_array / 255.0
 
-    preds = model.predict(
-        img_array,
-        verbose=0
-    )[0]
+    preds = model.predict(img_array, verbose=0)[0]
 
     index = int(np.argmax(preds))
-
-    confidence = float(
-        np.max(preds)
-    )
+    confidence = float(np.max(preds))
 
     return {
         "disease": class_names[index],
         "confidence": round(confidence * 100, 2)
     }
 
-# =========================
-# CLI MODE
-# =========================
 
+# =========================
+# CLI MODE (local testing)
+# =========================
 if __name__ == "__main__":
     try:
-
         if len(sys.argv) < 2:
-            raise Exception(
-                "No image path provided"
-            )
+            raise Exception("No image path provided")
 
-        img_path = sys.argv[1]
+        result = predict_image(sys.argv[1])
 
-        result = predict_image(img_path)
-
-        print(
-            json.dumps(result)
-        )
+        print(json.dumps(result))
 
     except Exception as e:
-
-        print(
-            json.dumps({
-                "disease": "error",
-                "confidence": 0,
-                "error": str(e)
-            })
-        )
-
+        print(json.dumps({
+            "disease": "error",
+            "confidence": 0,
+            "error": str(e)
+        }))
         sys.exit(1)

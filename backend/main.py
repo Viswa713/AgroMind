@@ -4,15 +4,14 @@ import os
 import sys
 
 # =========================
-# PATH FIX (Render-safe)
+# PATH FIX (project root access)
 # =========================
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.append(ROOT_DIR)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(BASE_DIR)
 
 from ml.bridge.ml_predictor import predict_image
 
 app = FastAPI()
-
 
 # =========================
 # HEALTH CHECK
@@ -24,7 +23,6 @@ def health():
         "service": "AgroMind ML API"
     }
 
-
 # =========================
 # PREDICTION ENDPOINT
 # =========================
@@ -33,19 +31,21 @@ async def predict(file: UploadFile = File(...)):
     temp_path = None
 
     try:
+        # get file extension safely
         suffix = os.path.splitext(file.filename)[1]
 
-        # safer temp file (Render-friendly)
+        # create temp file (Render-safe)
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp:
             temp.write(await file.read())
             temp_path = temp.name
 
+        # run ML inference
         result = predict_image(temp_path)
 
         return {
             "success": True,
-            "disease": result["disease"],
-            "confidence": float(result["confidence"])
+            "disease": result.get("disease", "unknown"),
+            "confidence": float(result.get("confidence", 0))
         }
 
     except Exception as e:
@@ -57,12 +57,13 @@ async def predict(file: UploadFile = File(...)):
         }
 
     finally:
+        # cleanup temp file
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
 
-
 # =========================
-# LOCAL DEV ONLY (NOT USED IN RENDER)
+# LOCAL RUN ONLY
+# (Render ignores this)
 # =========================
 if __name__ == "__main__":
     import uvicorn
@@ -70,8 +71,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
 
     uvicorn.run(
-        "backend.main:app",
+        app,
         host="0.0.0.0",
-        port=port,
-        reload=False
+        port=port
     )
