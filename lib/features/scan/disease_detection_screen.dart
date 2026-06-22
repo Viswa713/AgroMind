@@ -66,14 +66,24 @@ class _DiseaseDetectionScreenState extends State<DiseaseDetectionScreen> {
   // =========================
 Future<void> _runInference() async {
   try {
+    if (selectedImage == null) return;
+
     debugPrint("SENDING IMAGE PATH: ${selectedImage!.path}");
     debugPrint("FILE EXISTS: ${File(selectedImage!.path).existsSync()}");
 
+    setState(() {
+      isProcessing = true;
+    });
+
+    // =========================
+    // REQUEST SETUP (FIXED)
+    // =========================
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse("http://192.168.1.6:8000/predict"),
+      Uri.parse("https://agromind-klvf.onrender.com/predict"),
     );
 
+    // IMPORTANT: backend expects key = "file"
     request.files.add(
       await http.MultipartFile.fromPath(
         'file',
@@ -81,25 +91,37 @@ Future<void> _runInference() async {
       ),
     );
 
+    // =========================
+    // SEND REQUEST
+    // =========================
     var response = await request.send();
     var responseBody = await response.stream.bytesToString();
 
     debugPrint("ML RESPONSE: $responseBody");
 
+    // =========================
+    // PARSE RESPONSE
+    // =========================
     final decoded = jsonDecode(responseBody);
 
     setState(() {
       isProcessing = false;
+
       uiResult = {
-        "disease": decoded["disease"],
+        "disease": decoded["disease"] ?? "unknown",
         "confidence": (decoded["confidence"] as num).toDouble().round(),
+
+        // safe fallback handling
         "pesticide": decoded["pesticide"] ?? "Unknown",
         "treatment": decoded["treatment"] ?? [],
       };
     });
   } catch (e) {
+    debugPrint("ML ERROR: $e");
+
     setState(() {
       isProcessing = false;
+
       uiResult = {
         "disease": "error",
         "confidence": 0,
@@ -107,8 +129,6 @@ Future<void> _runInference() async {
         "treatment": ["ML inference failed"],
       };
     });
-
-    debugPrint("ML ERROR: $e");
   }
 }
  // RESET

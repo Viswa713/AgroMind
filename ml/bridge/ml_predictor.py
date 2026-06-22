@@ -10,7 +10,7 @@ from tensorflow.keras.preprocessing import image
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = os.path.abspath(
-    os.path.join(BASE_DIR, "..", "models", "tomato_model.keras")
+    os.path.join(BASE_DIR, "..", "models", "tomato_model")
 )
 
 IMG_SIZE = (224, 224)
@@ -39,8 +39,8 @@ def load_model_once():
         if not os.path.exists(MODEL_PATH):
             raise RuntimeError(f"Model not found: {MODEL_PATH}")
 
-        model = tf.keras.models.load_model(MODEL_PATH)
-
+       model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+    
     return model
 
 
