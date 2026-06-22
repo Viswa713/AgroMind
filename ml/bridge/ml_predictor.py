@@ -13,7 +13,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "models",
-    "tomato_model.keras"
+    "tomato_model.h5"
 )
 
 IMG_SIZE = (224, 224)
