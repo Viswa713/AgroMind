@@ -38,8 +38,7 @@ def load_model_once():
 
         if not os.path.exists(MODEL_PATH):
             raise RuntimeError(f"Model not found: {MODEL_PATH}")
-
-       model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
     
     return model
 
