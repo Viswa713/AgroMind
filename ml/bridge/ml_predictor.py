@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 
 # =========================
@@ -9,8 +10,10 @@ from tensorflow.keras.preprocessing import image
 # =========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.path.abspath(
-    os.path.join(BASE_DIR, "..", "models", "tomato_model")
+MODEL_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "models",
+    "tomato_model.keras"
 )
 
 IMG_SIZE = (224, 224)
@@ -34,12 +37,11 @@ def load_model_once():
     global model
 
     if model is None:
-        import tensorflow as tf
-
         if not os.path.exists(MODEL_PATH):
             raise RuntimeError(f"Model not found: {MODEL_PATH}")
-            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-    
+
+        model = tf.keras.models.load_model(MODEL_PATH)
+
     return model
 
 
