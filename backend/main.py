@@ -31,9 +31,6 @@ async def predict(file: UploadFile = File(...)):
     temp_path = None
 
     try:
-        # =========================
-        # SAFE FILE HANDLING
-        # =========================
         suffix = os.path.splitext(file.filename)[1]
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp:
@@ -43,9 +40,6 @@ async def predict(file: UploadFile = File(...)):
         print("TEMP FILE CREATED:", temp_path)
         print("FILE SIZE:", os.path.getsize(temp_path))
 
-        # =========================
-        # ML INFERENCE CALL
-        # =========================
         result = predict_image(temp_path)
 
         print("ML RESULT:", result)
@@ -57,9 +51,6 @@ async def predict(file: UploadFile = File(...)):
         }
 
     except Exception as e:
-        # =========================
-        # DEBUG ERROR OUTPUT
-        # =========================
         print("PREDICTION ERROR:", str(e))
 
         return {
@@ -70,14 +61,11 @@ async def predict(file: UploadFile = File(...)):
         }
 
     finally:
-        # =========================
-        # CLEANUP TEMP FILE
-        # =========================
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
 
 # =========================
-# LOCAL RUN ONLY
+# LOCAL RUN ONLY (Render ignores this)
 # =========================
 if __name__ == "__main__":
     import uvicorn
@@ -85,7 +73,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
 
     uvicorn.run(
-        "backend.main:app",
+        app,   # ✅ FIX: use app directly (NOT string import)
         host="0.0.0.0",
         port=port,
         reload=False
